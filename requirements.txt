@@ -1,0 +1,11 @@
+akshare
+pandas==1.5.3
+pytz
+easyquotation
+scipy
+tqdm
+requests
+retrying
+psutil
+pyspark==3.3.2
+pyarrow
