@@ -149,6 +149,8 @@ class StockData:
             tail_df = tail_df[['date', 'open', 'close', 'high', 'low', 'volume', 'code']]
             df = pd.concat([df, tail_df], axis=0)
         df = df.sort_values(by=['code', 'date'])
+        tail_df = df.groupby("code").tail(1).copy(deep=True)
+        tail_df.to_csv("data/ads/exchang_fund_rt_latest.csv", index=False)
         df.to_csv("data/ads/exchang_fund_rt.csv", index=False)
 
     def get_market_data(self):
