@@ -1,0 +1,35 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: Run qtrade3 every hour
+
+on:
+  schedule:
+    - cron: '1 */1 * * *'
+  workflow_dispatch:
+
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: 'pip' # caching pip dependencies
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: run qtrad3.py
+        run: |
+          python qtrade3.py
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: auto update README.md
