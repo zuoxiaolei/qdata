@@ -79,8 +79,9 @@ def run_qtrade4():
     scale_df.createOrReplaceTempView("scale_df")
     fund_etf_fund_daily_em_df.createOrReplaceTempView("fund_etf_fund_daily_em_df")
 
-    result = spark.sql(spark_sql[-1])
+    result = spark.sql(spark_sql[0])
     result_df = result.toPandas()
+    result_df = result_df['code,date,close,slope_standard'.split(',')]
     result_df_latest = result_df.groupby('code').tail(20)
     result_df.to_csv("data/rsrs.csv", index=False)
     result_df_latest.to_csv("data/rsrs_latest.csv", index=False)
@@ -160,6 +161,24 @@ def get_history_df():
     all_result.to_csv('temp5.csv', index=False)
 
 
+def get_stock_rsrs():
+    spark = get_spark()
+    stock_df = spark.read.csv("data/ods/market_df", header=True, inferSchema=True)
+    stock_df.createOrReplaceTempView("df")
+    stock_rsrs = spark.sql(spark_sql[1]).toPandas()
+    # stock_rsrs.to_csv('data/stock_rsrs.csv', index=False)
+    stock_rsrs_latest = stock_rsrs.groupby('code').tail(20)
+    stock_rsrs_latest.to_csv('data/stock_rsrs_latest.csv', index=False)
+
+
+def merge_rsrs():
+    df1 = pd.read_csv('data/rsrs_latest.csv', dtype={'code': object})
+    df2 = pd.read_csv('data/stock_rsrs_latest.csv', dtype={'code': object})
+    df = pd.concat([df1, df2], axis=0)
+    df['code'] = df['code'].map(lambda x: ''.join(['0'] * (6 - len(x))) + x)
+    df.to_csv('data/rsrs.csv', index=False)
+
+
 if __name__ == '__main__':
     # main(is_local=False)
     # run_qtrade4()
@@ -172,3 +191,5 @@ if __name__ == '__main__':
     #                                      'current_close', 'next_close', 'profit'])
     # df1.to_csv('temp2.csv', index=False)
     run_qtrade4()
+    get_stock_rsrs()
+    merge_rsrs()

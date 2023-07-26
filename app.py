@@ -7,7 +7,7 @@ github_proxy_prefix = "https://ghproxy.com/"
 
 @st.cache_resource(ttl=3600)
 def load_data():
-    df = pd.read_csv(github_proxy_prefix + qdata_prefix + 'rsrs_latest.csv', dtype={'code': object})
+    df = pd.read_csv(github_proxy_prefix + qdata_prefix + 'rsrs.csv', dtype={'code': object})
     return df
 
 
