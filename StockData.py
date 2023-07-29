@@ -70,6 +70,38 @@ def get_all_fund_scale():
     fund_scale_merge.to_csv("data/dim/scale.csv", index=False)
 
 
+def get_gongmu_fund_basic_info():
+    fund_name_em_df = ak.fund_name_em()
+    fund_name_em_df.columns = ['code', 'pinyin', 'name', 'type', 'pinyingquancheng']
+    fund_name_em_df.to_csv("data/dim/fund_name_em_df.csv", index=False)
+
+
+def get_stock_basic_info():
+    stock_zh_a_spot_em_df = ak.stock_zh_a_spot_em()
+    stock_zh_a_spot_em_df = stock_zh_a_spot_em_df[['代码', '名称']]
+    stock_zh_a_spot_em_df.columns = ['code', 'name']
+    stock_zh_a_spot_em_df.to_csv('data/dim/stock_zh_a_spot_em_df.csv', index=False)
+
+
+def get_gongmu_history():
+    basic_info = pd.read_csv('data/dim/fund_name_em_df.csv', dtype={"code": object})
+    codes = basic_info['code'].unique().tolist()
+
+    def get_history_df(code):
+        try:
+            fund_open_fund_info_em_df = ak.fund_open_fund_info_em(fund=code, indicator='累计净值走势')
+            fund_open_fund_info_em_df.columns = ['date', 'close']
+            fund_open_fund_info_em_df['code'] = code
+            print(code)
+            fund_open_fund_info_em_df.to_csv(f"data/ods/fund/{code}.csv", index=False)
+            return fund_open_fund_info_em_df
+        except:
+            return None
+
+    with ThreadPoolExecutor(100) as executor:
+        dfs = list(tqdm.tqdm(executor.map(get_history_df, codes), total=len(codes)))
+
+
 class StockData:
     def __init__(self):
         self.exchang_eft_basic_info_filename = "data/dim/exchang_eft_basic_info.csv"
@@ -224,6 +256,9 @@ def run_every_day():
     get_all_fund_scale()  # cost 11.9 seconds
     s.get_market_data()  # cost 291 seconds
     get_market_increase_decrease_cnt()  # 20 seconds
+    get_gongmu_fund_basic_info()
+    get_gongmu_history()
+    get_stock_basic_info()
 
 
 def run_every_minute():
@@ -246,3 +281,6 @@ def run():
 
 if __name__ == '__main__':
     run()
+    # get_gongmu_fund_basic_info()
+    # get_gongmu_history()
+    # get_stock_basic_info()

@@ -49,8 +49,11 @@ spark = get_spark()
 
 
 def get_ols(x, y):
+    '''线性回归'''
     if not x or not y:
         return float(np.NAN), float(np.NAN), float(np.NAN)
+    if len(x) != len(y):
+        return None, None, None
     x = np.array(x)
     y = np.array(y)
     slope, intercept = np.polyfit(x, y, 1)
@@ -62,29 +65,21 @@ schema = StructType().add("slope", DoubleType()).add("intercept", DoubleType()).
 spark.udf.register('get_ols', get_ols, schema)
 
 
-def run_qtrade4():
-    stock_df_filename = "data/ads/exchang_fund_rt.csv"
-    scale_df_filename = "data/dim/scale.csv"
-    fund_etf_fund_daily_em_df_filename = "data/dim/exchang_eft_basic_info.csv"
-    stock_df = pd.read_csv(stock_df_filename, dtype={"code": object})
-    scale_df = pd.read_csv(scale_df_filename, dtype={"code": object})
-    fund_etf_fund_daily_em_df = pd.read_csv(fund_etf_fund_daily_em_df_filename, dtype={'基金代码': object})
-    fund_etf_fund_daily_em_df = fund_etf_fund_daily_em_df[['基金代码', '基金简称', '类型']]
-    fund_etf_fund_daily_em_df.columns = ['code', 'name', 'type']
-
-    df = spark.createDataFrame(stock_df)
-    scale_df = spark.createDataFrame(scale_df)
-    fund_etf_fund_daily_em_df = spark.createDataFrame(fund_etf_fund_daily_em_df)
-    df.createOrReplaceTempView("df")
-    scale_df.createOrReplaceTempView("scale_df")
-    fund_etf_fund_daily_em_df.createOrReplaceTempView("fund_etf_fund_daily_em_df")
-
-    result = spark.sql(spark_sql[0])
-    result_df = result.toPandas()
-    result_df = result_df['code,date,close,slope_standard'.split(',')]
-    result_df_latest = result_df.groupby('code').tail(20)
-    result_df.to_csv("data/rsrs.csv", index=False)
-    result_df_latest.to_csv("data/rsrs_latest.csv", index=False)
+def get_slope():
+    etf_df_filename = "data/ads/exchang_fund_rt.csv"
+    etf_df = pd.read_csv(etf_df_filename, dtype={"code": object})
+    etf_df = spark.createDataFrame(etf_df)
+    stock_df = spark.read.csv("data/ods/market_df", header=True, inferSchema=True)
+    fund_df = spark.read.csv("data/ods/fund", header=True, inferSchema=True)
+    dfs = [etf_df, stock_df, fund_df]
+    res = []
+    for ele in dfs:
+        ele.createOrReplaceTempView("df")
+        res.append(spark.sql(spark_sql[0]).toPandas())
+    # res[0].to_csv('data/rsrs_fund.csv', index=False)
+    res[0].groupby('code').tail(20).to_csv('data/rsrs_etf_latest.csv', index=False)
+    res[1].groupby('code').tail(20).to_csv('data/stock_rsrs_latest.csv', index=False)
+    res[2].groupby('code').tail(20).to_csv('data/rsrs_fund_latest.csv', index=False)
 
 
 def tune_best_param(df, low=-0.5, high=1.5):
@@ -145,51 +140,60 @@ def find_best_param():
     all_result.to_csv('temp4.csv', index=False)
 
 
-def get_history_df():
-    best_param = pd.read_csv('best_param.csv', dtype={'code': object})
-    best_param = best_param.sort_values(by='profit', ascending=False)
-    best_param = best_param.head(20)
-    all_result = []
-    dfs = pd.read_csv('temp.csv', dtype={'code': object})
-    dfs = dfs[dfs.date >= '2013-01-01']
-    for code, name, low, high, profit in best_param.values.tolist():
-        df = dfs[dfs.code == code]
-        results = tune_best_param(df, low=low, high=high)
-        all_result.extend(results)
-    all_result = pd.DataFrame(all_result, columns=['code', 'name', 'current_date', 'next_date',
-                                                   'current_close', 'next_close', 'profit'])
-    all_result.to_csv('temp5.csv', index=False)
-
-
-def get_stock_rsrs():
-    spark = get_spark()
-    stock_df = spark.read.csv("data/ods/market_df", header=True, inferSchema=True)
-    stock_df.createOrReplaceTempView("df")
-    stock_rsrs = spark.sql(spark_sql[1]).toPandas()
-    # stock_rsrs.to_csv('data/stock_rsrs.csv', index=False)
-    stock_rsrs_latest = stock_rsrs.groupby('code').tail(20)
-    stock_rsrs_latest.to_csv('data/stock_rsrs_latest.csv', index=False)
-
-
 def merge_rsrs():
-    df1 = pd.read_csv('data/rsrs_latest.csv', dtype={'code': object})
+    etf_info = pd.read_csv("data/dim/exchang_eft_basic_info.csv", dtype={'基金代码': object})[['基金代码', '基金简称']]
+    etf_info.columns = ['code', 'name']
+    stock_info = pd.read_csv("data/dim/stock_zh_a_spot_em_df.csv", dtype={'code': object})[['code', 'name']]
     df2 = pd.read_csv('data/stock_rsrs_latest.csv', dtype={'code': object})
-    df = pd.concat([df1, df2], axis=0)
-    df['code'] = df['code'].map(lambda x: ''.join(['0'] * (6 - len(x))) + x)
+    df3 = pd.read_csv('data/rsrs_etf_latest.csv', dtype={'code': object})
+    df2['code'] = df2['code'].map(lambda x: ''.join(['0'] * (6 - len(x))) + x)
+    df3['code'] = df3['code'].map(lambda x: ''.join(['0'] * (6 - len(x))) + x)
+    df2 = df2.merge(stock_info, on='code', how='left')
+    df3 = df3.merge(etf_info, on='code', how='left')
+    df = pd.concat([df2, df3], axis=0)
+
     df.to_csv('data/rsrs.csv', index=False)
+    fund_info = pd.read_csv("data/dim/fund_name_em_df.csv", dtype={'code': object})[['code', 'name']]
+    df1 = pd.read_csv('data/rsrs_fund_latest.csv', dtype={'code': object})
+    df1['code'] = df1['code'].map(lambda x: ''.join(['0'] * (6 - len(x))) + x)
+    df1 = df1.merge(fund_info, on='code', how='left')
+    df1.to_csv('data/rsrs_fund.csv', index=False)
+
+
+def rsrs_strategy(dates, df_dict, low=-0.2, high=0.9):
+    length = len(dates)
+    buy_states = False
+    current_code = None
+    money = 1
+    buy_price = None
+    log_data = []
+    buy_date = None
+
+    for i in range(length):
+        sub_df = df_dict[dates[i]]
+        if not buy_states:
+            slope_array = sub_df['slope_standard'].values
+            find_index = np.argmin(np.abs(slope_array - low))
+            rsrs = sub_df.iloc[find_index]['slope_standard']
+            if abs(rsrs - low) <= 0.1:
+                buy_states = True
+                buy_price = sub_df.iloc[find_index]['close']
+                current_code = sub_df.iloc[find_index]['code']
+                buy_date = sub_df.iloc[find_index]['date']
+        else:
+            sub_df = sub_df[sub_df.code == current_code]
+            if not sub_df.empty:
+                slope_array = sub_df['slope_standard'].values
+                find_index = np.argmin(np.abs(slope_array - high))
+                rsrs = sub_df.iloc[find_index]['slope_standard']
+                if abs(rsrs - high) <= 0.1:
+                    buy_states = False
+                    sell_price = sub_df.iloc[find_index]['close']
+                    money = money * (sell_price / buy_price)
+                    log_data.append([current_code, buy_date, dates[i], sell_price / buy_price])
+    return money, log_data
 
 
 if __name__ == '__main__':
-    # main(is_local=False)
-    # run_qtrade4()
-
-    # df = pd.read_csv('temp.csv', dtype={'code': object})
-    # df = df[df.code == '510300']
-    # print(df)
-    # results = get_best_param(df)
-    # df1 = pd.DataFrame(results, columns=['code', 'name', 'current_date', 'next_date',
-    #                                      'current_close', 'next_close', 'profit'])
-    # df1.to_csv('temp2.csv', index=False)
-    run_qtrade4()
-    get_stock_rsrs()
+    get_slope()
     merge_rsrs()
