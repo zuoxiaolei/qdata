@@ -257,7 +257,7 @@ def run_every_day():
     s.save_exchang_fund_basic_info()  # cost 0.7 seconds
     s.update_data()  # cost 18 seconds
     get_all_fund_scale()  # cost 11.9 seconds
-    s.get_market_data(10)  # cost 291 seconds
+    s.get_market_data(2)  # cost 291 seconds
     get_market_increase_decrease_cnt()  # 20 seconds
 
 
