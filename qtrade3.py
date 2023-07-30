@@ -76,10 +76,19 @@ def get_slope():
     for ele in dfs:
         ele.createOrReplaceTempView("df")
         res.append(spark.sql(spark_sql[0]).toPandas())
-    # res[0].to_csv('data/rsrs_fund.csv', index=False)
+    res[0].to_csv('data/rsrs_etf.csv', index=False)
     res[0].groupby('code').tail(20).to_csv('data/rsrs_etf_latest.csv', index=False)
     res[1].groupby('code').tail(20).to_csv('data/stock_rsrs_latest.csv', index=False)
     res[2].groupby('code').tail(20).to_csv('data/rsrs_fund_latest.csv', index=False)
+
+
+def get_etf_slope():
+    etf_df_filename = "data/ads/exchang_fund_rt.csv"
+    etf_df = pd.read_csv(etf_df_filename, dtype={"code": object})
+    etf_df = spark.createDataFrame(etf_df)
+    etf_df.createOrReplaceTempView("df")
+    res = spark.sql(spark_sql[0]).toPandas()
+    res.to_csv('data/rsrs_etf.csv', index=False)
 
 
 def tune_best_param(df, low=-0.5, high=1.5):
@@ -197,3 +206,4 @@ def rsrs_strategy(dates, df_dict, low=-0.2, high=0.9):
 if __name__ == '__main__':
     get_slope()
     merge_rsrs()
+    # get_etf_slope()
