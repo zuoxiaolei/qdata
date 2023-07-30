@@ -257,14 +257,19 @@ def run_every_day():
     s.save_exchang_fund_basic_info()  # cost 0.7 seconds
     s.update_data()  # cost 18 seconds
     get_all_fund_scale()  # cost 11.9 seconds
-    s.get_market_data(2)  # cost 291 seconds
-    get_market_increase_decrease_cnt()  # 20 seconds
+    # s.get_market_data(2)  # cost 291 seconds
+    # get_market_increase_decrease_cnt()  # 20 seconds
 
 
 def run_every_day2():
     get_gongmu_fund_basic_info()
     get_gongmu_history(2)
     get_stock_basic_info()
+
+
+def run_every_day3():
+    s = StockData()
+    s.get_market_data(2)  # cost 291 seconds
 
 
 def run_every_minute():
@@ -282,6 +287,8 @@ def run():
         run_every_minute()
     elif run_function == "run_every_day2":
         run_every_day2()
+    elif run_function == "run_every_day3":
+        run_every_day3()
     else:
         raise Exception("function not find!")
     print(f"run qdata cost: {time.time() - start_time} second")

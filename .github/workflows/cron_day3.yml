@@ -5,7 +5,7 @@ name: Run every hour
 
 on:
   schedule:
-    - cron: '1 */1 * * *'
+    - cron: '1 */12 * * *'
   workflow_dispatch:
 
 
@@ -29,7 +29,7 @@ jobs:
           pip install -r requirements.txt
       - name: run application
         run: |
-          python StockData.py run_every_day
+          python StockData.py run_every_day3
       - name: run git pull
         run: |
           git pull
