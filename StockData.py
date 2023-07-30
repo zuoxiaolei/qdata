@@ -276,6 +276,7 @@ def run_every_minute():
     s = StockData()
     s.get_rt_data()  # cost 20 seconds
     get_market_increase_decrease_cnt_rt()
+    get_etf_strategy()
 
 
 def run():
@@ -294,8 +295,36 @@ def run():
     print(f"run qdata cost: {time.time() - start_time} second")
 
 
+def get_etf_strategy():
+    etf_df = pd.read_csv('data/rsrs_etf.csv', dtype={"code": object})
+    etf_df['slope_standard_last'] = etf_df.groupby('code')['slope_standard'].shift(1)
+    best_params = pd.read_csv('data/best_params.csv', dtype={"code": object})
+    scale = pd.read_csv("data/dim/scale.csv", dtype={"code": object})
+    etf_df = etf_df.merge(best_params, on=['code'])
+    etf_df = etf_df.merge(scale, on=['code'])
+    etf_df = etf_df[etf_df.scale >= 20]
+    etf_df = etf_df.sort_values('scale', ascending=False)
+    etf_df = etf_df[etf_df.date == etf_df.date.max()]
+
+    def get_buy_signal(row):
+        low, hight = row['low'], row['high']
+        rsrs, rsrs_last = row['slope_standard'], row['slope_standard_last']
+        if rsrs >= hight:
+            return 'sell'
+        elif rsrs_last <= low <= rsrs:
+            return 'buy'
+        else:
+            return 'hold'
+
+    etf_df['signal'] = etf_df.apply(get_buy_signal, axis=1)
+    etf_df = etf_df[etf_df['signal'].isin(['buy', 'sell'])]
+    etf_df = etf_df.groupby('code').tail(1)
+    etf_df.to_csv('data/etf_strategy.csv', index=False)
+
+
 if __name__ == '__main__':
-    run()
+    # run()
     # get_gongmu_fund_basic_info()
     # get_gongmu_history()
     # get_stock_basic_info()
+    get_etf_strategy()
