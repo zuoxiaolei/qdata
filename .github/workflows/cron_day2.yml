@@ -5,7 +5,7 @@ name: Run every hour
 
 on:
   schedule:
-    - cron: '1 */2 * * *'
+    - cron: '1 */12 * * *'
   workflow_dispatch:
 
 
@@ -16,7 +16,7 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 720
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python 3.10
@@ -29,7 +29,7 @@ jobs:
           pip install -r requirements.txt
       - name: run application
         run: |
-          python StockData.py run_every_day
+          python StockData.py run_every_day2
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: auto update README.md

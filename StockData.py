@@ -15,7 +15,7 @@ from pyspark.sql import SparkSession
 
 data_path = 'data/stock_data/'
 cpu_count = psutil.cpu_count()
-thread_num = 100
+thread_num = 10
 headers = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"}
 
@@ -83,7 +83,7 @@ def get_stock_basic_info():
     stock_zh_a_spot_em_df.to_csv('data/dim/stock_zh_a_spot_em_df.csv', index=False)
 
 
-def get_gongmu_history():
+def get_gongmu_history(thread_num):
     basic_info = pd.read_csv('data/dim/fund_name_em_df.csv', dtype={"code": object})
     codes = basic_info['code'].unique().tolist()
 
@@ -94,11 +94,12 @@ def get_gongmu_history():
             fund_open_fund_info_em_df['code'] = code
             print(code)
             fund_open_fund_info_em_df.to_csv(f"data/ods/fund/{code}.csv", index=False)
+            time.sleep(0.5)
             return fund_open_fund_info_em_df
         except:
             return None
 
-    with ThreadPoolExecutor(100) as executor:
+    with ThreadPoolExecutor(thread_num) as executor:
         dfs = list(tqdm.tqdm(executor.map(get_history_df, codes), total=len(codes)))
 
 
@@ -129,6 +130,7 @@ class StockData:
                 df = df[columns]
                 df.columns = ['date', 'open', 'close', 'high', 'low', 'volume']
                 df['code'] = code
+                time.sleep(0.5)
                 return df
             except Exception as e:
                 import traceback
@@ -185,7 +187,7 @@ class StockData:
         tail_df.to_csv("data/ads/exchang_fund_rt_latest.csv", index=False)
         df.to_csv("data/ads/exchang_fund_rt.csv", index=False)
 
-    def get_market_data(self):
+    def get_market_data(self, thread_num):
         stocks = ak.stock_zh_a_spot_em()
         stock_codes = stocks["代码"]
 
@@ -197,9 +199,10 @@ class StockData:
                 stock_zh_a_hist_df['code'] = code
             else:
                 stock_zh_a_hist_df = None
+            time.sleep(0.5)
             return stock_zh_a_hist_df
 
-        with ThreadPoolExecutor(100) as pool:
+        with ThreadPoolExecutor(thread_num) as pool:
             dfs = list(tqdm.tqdm(pool.map(get_market_df, stock_codes), total=len(stock_codes)))
             dfs = [ele for ele in dfs if ele is not None]
         market_df = pd.concat(dfs, axis=0)
@@ -254,10 +257,13 @@ def run_every_day():
     s.save_exchang_fund_basic_info()  # cost 0.7 seconds
     s.update_data()  # cost 18 seconds
     get_all_fund_scale()  # cost 11.9 seconds
-    s.get_market_data()  # cost 291 seconds
+    s.get_market_data(10)  # cost 291 seconds
     get_market_increase_decrease_cnt()  # 20 seconds
+
+
+def run_every_day2():
     get_gongmu_fund_basic_info()
-    get_gongmu_history()
+    get_gongmu_history(2)
     get_stock_basic_info()
 
 
@@ -274,6 +280,8 @@ def run():
         run_every_day()
     elif run_function == "run_every_minute":
         run_every_minute()
+    elif run_function == "run_every_day2":
+        run_every_day2()
     else:
         raise Exception("function not find!")
     print(f"run qdata cost: {time.time() - start_time} second")
