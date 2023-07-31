@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import datetime
 
 is_local = False
-ttl = 3600
+ttl = 600
 height = 740
 width = 800
 index_name = 'slope_standard'
