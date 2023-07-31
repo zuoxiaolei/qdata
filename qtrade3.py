@@ -65,31 +65,36 @@ schema = StructType().add("slope", DoubleType()).add("intercept", DoubleType()).
 spark.udf.register('get_ols', get_ols, schema)
 
 
-def get_slope():
+def get_etf_slope():
     etf_df_filename = "data/ads/exchang_fund_rt.csv"
     etf_df = pd.read_csv(etf_df_filename, dtype={"code": object})
     etf_df = spark.createDataFrame(etf_df)
-    stock_df = spark.read.csv("data/ods/market_df", header=True, inferSchema=True)
-    fund_df = spark.read.csv("data/ods/fund", header=True, inferSchema=True)
-    dfs = [etf_df, stock_df, fund_df]
+    dfs = [etf_df]
     res = []
     for ele in dfs:
         ele.createOrReplaceTempView("df")
         res.append(spark.sql(spark_sql[0]).toPandas())
     res[0].to_csv('data/rsrs_etf.csv', index=False)
     res[0].groupby('code').tail(20).to_csv('data/rsrs_etf_latest.csv', index=False)
-    res[1].groupby('code').tail(20).to_csv('data/stock_rsrs_latest.csv', index=False)
-    res[2].groupby('code').tail(20).to_csv('data/rsrs_fund_latest.csv', index=False)
+
+def get_stock_slope():
+    stock_df = spark.read.csv("data/ods/market_df", header=True, inferSchema=True)
+    dfs = [stock_df]
+    res = []
+    for ele in dfs:
+        ele.createOrReplaceTempView("df")
+        res.append(spark.sql(spark_sql[0]).toPandas())
+    res[0].groupby('code').tail(20).to_csv('data/stock_rsrs_latest.csv', index=False)
 
 
-def get_etf_slope():
-    etf_df_filename = "data/ads/exchang_fund_rt.csv"
-    etf_df = pd.read_csv(etf_df_filename, dtype={"code": object})
-    etf_df = spark.createDataFrame(etf_df)
-    etf_df.createOrReplaceTempView("df")
-    res = spark.sql(spark_sql[0]).toPandas()
-    res.to_csv('data/rsrs_etf.csv', index=False)
-
+def get_fund_slope():
+    fund_df = spark.read.csv("data/ods/fund", header=True, inferSchema=True)
+    dfs = [fund_df]
+    res = []
+    for ele in dfs:
+        ele.createOrReplaceTempView("df")
+        res.append(spark.sql(spark_sql[0]).toPandas())
+    res[0].groupby('code').tail(20).to_csv('data/rsrs_fund_latest.csv', index=False)
 
 def tune_best_param(df, low=-0.5, high=1.5):
     if low >= high:
@@ -204,6 +209,5 @@ def rsrs_strategy(dates, df_dict, low=-0.2, high=0.9):
 
 
 if __name__ == '__main__':
-    get_slope()
+    get_etf_slope()
     merge_rsrs()
-    # get_etf_slope()
