@@ -324,8 +324,7 @@ def get_etf_strategy():
 
 
 if __name__ == '__main__':
-    # run()
+    run()
     # get_gongmu_fund_basic_info()
     # get_gongmu_history()
     # get_stock_basic_info()
-    get_etf_strategy()
