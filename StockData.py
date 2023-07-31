@@ -167,6 +167,7 @@ class StockData:
             realtime_df.append([date, open, close, high, low, volume, code, increase_rate])
         columns = ['date', 'open', 'close', 'high', 'low', 'volume', 'code', 'increase_rate']
         realtime_df = pd.DataFrame(realtime_df, columns=columns)
+        print("realtime_df", realtime_df.head())
         realtime_df.to_csv("data/ods/realtime_sina.csv", index=False)
 
     def get_rt_data(self):
