@@ -1,4 +1,5 @@
 import random
+import sys
 from datetime import datetime
 import numpy as np
 import psutil
@@ -77,6 +78,7 @@ def get_etf_slope():
     res[0].to_csv('data/rsrs_etf.csv', index=False)
     res[0].groupby('code').tail(20).to_csv('data/rsrs_etf_latest.csv', index=False)
 
+
 def get_stock_slope():
     stock_df = spark.read.csv("data/ods/market_df", header=True, inferSchema=True)
     dfs = [stock_df]
@@ -95,6 +97,7 @@ def get_fund_slope():
         ele.createOrReplaceTempView("df")
         res.append(spark.sql(spark_sql[0]).toPandas())
     res[0].groupby('code').tail(20).to_csv('data/rsrs_fund_latest.csv', index=False)
+
 
 def tune_best_param(df, low=-0.5, high=1.5):
     if low >= high:
@@ -208,6 +211,21 @@ def rsrs_strategy(dates, df_dict, low=-0.2, high=0.9):
     return money, log_data
 
 
+def run():
+    args = sys.argv
+    if len(args) > 1:
+        if args[1] == "get_etf_slope":
+            get_etf_slope()
+            merge_rsrs()
+        elif args[1] == "get_stock_slope":
+            get_stock_slope()
+            merge_rsrs()
+        elif args[1] == "get_fund_slope":
+            get_fund_slope()
+            merge_rsrs()
+        else:
+            print("qtrade3 usage: python qtrade3.py get_etf_slope|get_stock_slope|get_fund_slope")
+
+
 if __name__ == '__main__':
-    get_etf_slope()
-    merge_rsrs()
+    run()
