@@ -300,7 +300,8 @@ def get_etf_strategy():
     etf_df = pd.read_csv('data/rsrs_etf.csv', dtype={"code": object})
     etf_df['slope_standard_last'] = etf_df.groupby('code')['slope_standard'].shift(1)
     best_params = pd.read_csv('data/best_params.csv', dtype={"code": object})
-    best_params = best_params[best_params.high>best_params.low]
+    best_params = best_params[best_params.high > best_params.low]
+    best_params = best_params[(best_params.high - best_params.low) >= 0.5]
     scale = pd.read_csv("data/dim/scale.csv", dtype={"code": object})
     etf_df = etf_df.merge(best_params, on=['code'])
     etf_df = etf_df.merge(scale, on=['code'])
