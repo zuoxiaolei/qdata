@@ -7,6 +7,7 @@ import pytz
 import pandas as pd
 from pyspark.sql import SparkSession, udf
 from pyspark.sql.types import *
+from StockData import get_etf_strategy
 
 cpu_count = psutil.cpu_count()
 windows = 110
@@ -217,12 +218,15 @@ def run():
         if args[1] == "get_etf_slope":
             get_etf_slope()
             merge_rsrs()
+            get_etf_strategy()
         elif args[1] == "get_stock_slope":
             get_stock_slope()
             merge_rsrs()
+            get_etf_strategy()
         elif args[1] == "get_fund_slope":
             get_fund_slope()
             merge_rsrs()
+            get_etf_strategy()
         else:
             print("qtrade3 usage: python qtrade3.py get_etf_slope|get_stock_slope|get_fund_slope")
 

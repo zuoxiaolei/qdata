@@ -33,9 +33,26 @@ def load_etf_strategy():
     return df
 
 
+@st.cache_resource(ttl=ttl)
+def load_best_parameter():
+    best_params = pd.read_csv(qdata_prefix + 'best_params.csv', dtype={'code': object})
+    return best_params
+
+
+@st.cache_resource(ttl=ttl)
+def load_etf_basic_info():
+    df = pd.read_csv(qdata_prefix + "dim/exchang_eft_basic_info.csv", dtype={'基金代码': object})
+    df = df[['基金代码', '基金简称']]
+    df.columns = ['code', 'name']
+    return df
+
+
 stock_df = load_stock_data()
 fund_df = load_fund_data()
 etf_strategy_df = load_etf_strategy()
+best_params = load_best_parameter()
+etf_basic_info = load_etf_basic_info()
+etf_strategy_df = etf_strategy_df.merge(etf_basic_info, on="code")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -64,9 +81,10 @@ with col2:
 st.markdown("## 自选股票/基金")
 self_select_codes = ['159941', '512000', '159915',
                      '512880', '603986', '515800',
-                     '512100', '510300', '513050', '510210']
-self_select_df: pd.DataFrame = stock_df[stock_df.code.isin(self_select_codes)].groupby('code').tail(1)
+                     '512100', '510300', '513050', '510210', '512760']
+self_select_df = stock_df[stock_df.code.isin(self_select_codes)].groupby('code').tail(1)
 self_select_df = self_select_df.sort_values(index_name)
+self_select_df = self_select_df.merge(best_params, on=['code'])
 st.dataframe(self_select_df, height=390, hide_index=True)
 
 st.markdown("## rsrs策略推荐")
