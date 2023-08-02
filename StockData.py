@@ -284,7 +284,7 @@ def run():
     start_time = time.time()
     run_function = sys.argv[1]
     if run_function == "run_every_day":
-        run_every_day()
+        pass
     elif run_function == "run_every_minute":
         run_every_minute()
     elif run_function == "run_every_day2":
