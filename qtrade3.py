@@ -7,7 +7,7 @@ import pytz
 import pandas as pd
 from pyspark.sql import SparkSession, udf
 from pyspark.sql.types import *
-from StockData import get_etf_strategy
+from StockData import get_etf_strategy, run_every_day
 
 cpu_count = psutil.cpu_count()
 windows = 110
@@ -216,6 +216,7 @@ def run():
     args = sys.argv
     if len(args) > 1:
         if args[1] == "get_etf_slope":
+            run_every_day()
             get_etf_slope()
             merge_rsrs()
             get_etf_strategy()
