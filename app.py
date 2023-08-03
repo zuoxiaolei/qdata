@@ -81,7 +81,8 @@ with col2:
 st.markdown("## 自选股票/基金")
 self_select_codes = ['159941', '512000', '159915',
                      '512880', '603986', '515800',
-                     '512100', '510300', '513050', '510210', '512760']
+                     '512100', '510300', '513050', '510210',
+                     '512760', '159967']
 self_select_df = stock_df[stock_df.code.isin(self_select_codes)].groupby('code').tail(1)
 self_select_df = self_select_df.sort_values(index_name)
 self_select_df = self_select_df.merge(best_params, on=['code'])
